@@ -44,17 +44,21 @@ int main() {
     cv::Mat img_complex (padded_float.rows, padded_float.cols, CV_32FC2);
 
     // Fourier transform for every row in init img
+    cv::Mat W;
+    W = get_W(padded_float.cols);
     for (int i = 0; i < padded_float.rows; i++) {
         cv::Mat row = padded_float.row(i);
-        cv::Mat row_new = DFT_lobovoy(row);
+
+        cv::Mat row_new = DFT_lobovoy(row, W);
         cv::transpose(row_new, row_new);
         img_complex.row(i) = row_new.clone() + 0;
     }
 
     // Fourier transform for every col in edited img
+    W = get_W(padded_float.rows);
     for (int i = 0; i < img_complex.cols; i++) {
         cv::Mat col = img_complex.col(i);
-        cv::Mat col_new = DFT_lobovoy(col);
+        cv::Mat col_new = DFT_lobovoy(col, W);
         img_complex.col(i) = col_new.clone() + 0;
     }
 

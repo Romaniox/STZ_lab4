@@ -3,5 +3,5 @@
 #include <opencv2/imgproc.hpp>
 #include <iostream>
 
-cv::Mat DFT_lobovoy(const cv::Mat& x_);
-cv::Mat get_W(const cv::Mat &x0);
+cv::Mat DFT_lobovoy(const cv::Mat& x_, const cv::Mat &W);
+cv::Mat get_W(int N);
