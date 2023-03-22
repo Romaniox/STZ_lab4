@@ -77,12 +77,42 @@ int main() {
     krasivSpektr(img_mag);
 
     // get init img by Inverse DFT
-//    cv::Mat img_back;
-//    cv::dft(img_complex, img_back, cv::DFT_INVERSE | cv::DFT_REAL_OUTPUT);
-//    cv::normalize(img_back, img_back, 0, 255, cv::NORM_MINMAX);
-//    img_back.convertTo(img_back, CV_8U);
+    cv::Mat img_back(img_complex.rows, img_complex.cols, CV_32FC2);
 
-    std::vector<cv::Mat> images = {img, padded, img_mag};
+    cv::Mat W_inv;
+    W_inv = get_W_inv(img_complex.cols);
+    for (int i = 0; i < img_complex.rows; i++) {
+        cv::Mat row = img_complex.row(i);
+
+        cv::Mat row_new = DFT_lobovoy(row, W_inv);
+        cv::transpose(row_new, row_new);
+        img_back.row(i) = row_new.clone() + 0;
+    }
+
+    // Fourier transform for every col in edited img
+    W_inv = get_W_inv(img_complex.rows);
+    for (int i = 0; i < img_back.cols; i++) {
+        cv::Mat col = img_back.col(i);
+        cv::Mat col_new = DFT_lobovoy(col, W_inv);
+        img_back.col(i) = col_new.clone() + 0;
+    }
+
+//    std::cout << img_back.at<cv::Point2f>(0, 0) << std::endl;
+//    std::cout << img_back.at<cv::Point2f>(0, 1) << std::endl;
+//    std::cout << img_back.at<cv::Point2f>(0, 2) << std::endl;
+
+    cv::Mat planes_out[2];
+    split(img_back, planes_out);
+
+//    cv::Mat img_back_new;
+    img_back = planes_out[0].clone();
+
+//    std::cout << img_back << std::endl;
+
+    cv::normalize(img_back, img_back, 0, 255, cv::NORM_MINMAX);
+    img_back.convertTo(img_back, CV_8U);
+
+    std::vector<cv::Mat> images = {img, padded, img_mag, img_back};
     show_images(images);
 
     return 0;
