@@ -3,7 +3,7 @@ project(lab4)
 
 set(CMAKE_CXX_STANDARD 14)
 
-add_executable(lab4 main.cpp custom_DFT.cpp custom_DFT.h custom_FFT.cpp custom_FFT.h)
+add_executable(lab4 main.cpp custom_DFT.cpp custom_DFT.h custom_FFT.cpp custom_FFT.h FourierTransform.cpp FourierTransform.h)
 
 set(OpenCV_DIR "D:\\OpenCV\\mingw-build\\install")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
