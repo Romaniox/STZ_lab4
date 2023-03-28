@@ -1,5 +1,6 @@
 #include <iostream>
 #include "custom_DFT.h"
+#include "custom_FFT.h"
 
 #include "opencv2/core.hpp"
 #include "opencv2/highgui.hpp"
@@ -38,10 +39,57 @@ int main() {
     cv::Mat padded;                            //expand input image to optimal size
     int m = cv::getOptimalDFTSize(img.rows);
     int n = cv::getOptimalDFTSize(img.cols);
+
+    m = 512;
     copyMakeBorder(img, padded, 0, m - img.rows, 0, n - img.cols, cv::BORDER_CONSTANT, cv::Scalar::all(0));
 
     cv::Mat padded_float = cv::Mat_<float>(padded);
-    cv::Mat img_complex (padded_float.rows, padded_float.cols, CV_32FC2);
+    cv::Mat img_complex(padded_float.rows, padded_float.cols, CV_32FC2);
+
+    cv::merge(std::vector<cv::Mat>{padded_float, cv::Mat::zeros(padded_float.size(), CV_32F)}, img_complex);
+
+    for (int i = 0; i < img_complex.rows; i++) {
+        cv::Mat row = img_complex.row(i);
+
+        cv::Mat row_new = fft(row, img_complex.cols);
+//        cv::transpose(row_new, row_new);
+        img_complex.row(i) = row_new.clone() + 0;
+//        std::cout << row_new << std::endl;
+//        std::cout << img_complex.row(i) << std::endl;
+
+//        std::cout << img_complex.row(i).at<cv::Point2f>(0, 100) << std::endl;
+    }
+
+//    std::cout << img_complex.at<cv::Point2f>(0, 100) << std::endl;
+//    std::cout << img_complex.at<cv::Point2f>(100, 0) << std::endl;
+//    std::cout << img_complex.at<cv::Point2f>(100, 100) << std::endl;
+//    std::cout << img_complex.at<cv::Point2f>(100, 250) << std::endl;
+
+//    std::cout << img_complex.at<cv::Point2f>(99, 99) << std::endl;
+//    std::cout << img_complex.at<cv::Point2f>(111, 111) << std::endl;
+//    std::cout << img_complex.at<cv::Point2f>(51, 101) << std::endl;
+//    std::cout << img_complex.at<cv::Point2f>(0, 0) << std::endl;
+//    std::cout << img_complex.at<cv::Point2f>(1, 0) << std::endl;
+//    std::cout << img_complex.at<cv::Point2f>(1, 1) << std::endl;
+//    std::cout << img_complex.at<cv::Point2f>(2, 1) << std::endl;
+
+    // Fourier transform for every col in edited img
+    for (int i = 0; i < img_complex.cols; i++) {
+        cv::Mat col = img_complex.col(i);
+//        std::cout << col << std::endl;
+        cv::transpose(col, col);
+//        std::cout << col.at<cv::Point2f>(0, 0) << std::endl;
+        cv::Mat col_new = fft(col, img_complex.rows);
+        cv::transpose(col_new, col_new);
+        img_complex.col(i) = col_new.clone() + 0;
+    }
+
+    std::cout << img_complex.at<cv::Point2f>(0, 100) << std::endl;
+    std::cout << img_complex.at<cv::Point2f>(100, 100) << std::endl;
+    std::cout << img_complex.at<cv::Point2f>(50, 100) << std::endl;
+    std::cout << img_complex.at<cv::Point2f>(250, 250) << std::endl;
+
+    /*
 
     // Fourier transform for every row in init img
     cv::Mat W;
@@ -62,6 +110,18 @@ int main() {
         img_complex.col(i) = col_new.clone() + 0;
     }
 
+     */
+
+//    cv::Mat img_complex_FORSAVE;
+//    cv::merge(std::vector<cv::Mat>{img_complex, cv::Mat::zeros(img_complex.size(), CV_32F)}, img_complex_FORSAVE);
+//    cv::imwrite("../results/FFT_cpp_256_512.png", img_complex_FORSAVE);
+
+    // Declare what you need
+//    cv::FileStorage file("../results/FFT_cpp_256_512.csv", cv::FileStorage::WRITE);
+
+    // Write to file!
+//    file << "matName" << img_complex;
+
     //split Re and Im parts of Fourier img
     cv::Mat planes[2];
     split(img_complex, planes);
@@ -77,42 +137,42 @@ int main() {
     krasivSpektr(img_mag);
 
     // get init img by Inverse DFT
-    cv::Mat img_back(img_complex.rows, img_complex.cols, CV_32FC2);
-
-    cv::Mat W_inv;
-    W_inv = get_W_inv(img_complex.cols);
-    for (int i = 0; i < img_complex.rows; i++) {
-        cv::Mat row = img_complex.row(i);
-
-        cv::Mat row_new = DFT_lobovoy(row, W_inv);
-        cv::transpose(row_new, row_new);
-        img_back.row(i) = row_new.clone() + 0;
-    }
-
-    // Fourier transform for every col in edited img
-    W_inv = get_W_inv(img_complex.rows);
-    for (int i = 0; i < img_back.cols; i++) {
-        cv::Mat col = img_back.col(i);
-        cv::Mat col_new = DFT_lobovoy(col, W_inv);
-        img_back.col(i) = col_new.clone() + 0;
-    }
+//    cv::Mat img_back(img_complex.rows, img_complex.cols, CV_32FC2);
+//
+//    cv::Mat W_inv;
+//    W_inv = get_W_inv(img_complex.cols);
+//    for (int i = 0; i < img_complex.rows; i++) {
+//        cv::Mat row = img_complex.row(i);
+//
+//        cv::Mat row_new = DFT_lobovoy(row, W_inv);
+//        cv::transpose(row_new, row_new);
+//        img_back.row(i) = row_new.clone() + 0;
+//    }
+//
+//    // Fourier transform for every col in edited img
+//    W_inv = get_W_inv(img_complex.rows);
+//    for (int i = 0; i < img_back.cols; i++) {
+//        cv::Mat col = img_back.col(i);
+//        cv::Mat col_new = DFT_lobovoy(col, W_inv);
+//        img_back.col(i) = col_new.clone() + 0;
+//    }
 
 //    std::cout << img_back.at<cv::Point2f>(0, 0) << std::endl;
 //    std::cout << img_back.at<cv::Point2f>(0, 1) << std::endl;
 //    std::cout << img_back.at<cv::Point2f>(0, 2) << std::endl;
 
-    cv::Mat planes_out[2];
-    split(img_back, planes_out);
+//    cv::Mat planes_out[2];
+//    split(img_back, planes_out);
 
 //    cv::Mat img_back_new;
-    img_back = planes_out[0].clone();
+//    img_back = planes_out[0].clone();
 
 //    std::cout << img_back << std::endl;
 
-    cv::normalize(img_back, img_back, 0, 255, cv::NORM_MINMAX);
-    img_back.convertTo(img_back, CV_8U);
+//    cv::normalize(img_back, img_back, 0, 255, cv::NORM_MINMAX);
+//    img_back.convertTo(img_back, CV_8U);
 
-    std::vector<cv::Mat> images = {img, padded, img_mag, img_back};
+    std::vector<cv::Mat> images = {img, padded, img_mag};
     show_images(images);
 
     return 0;
