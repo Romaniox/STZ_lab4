@@ -21,6 +21,9 @@ private:
     cv::Mat fft(const cv::Mat &x_in, int N);
 
     void fft_rec(std::vector<std::complex<float>> &x, int N);
+
+    cv::Mat ifft(const cv::Mat &x_in, int N);
+    void ifft_rec(std::vector<std::complex<float>> &x, int N);
 private:
     cv::Mat DFT_lobovoy(const cv::Mat &x0, const cv::Mat &W);
     void krasivSpektr(cv::Mat &imag);

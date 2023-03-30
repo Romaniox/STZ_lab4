@@ -141,6 +141,29 @@ cv::Mat FourierTransform::full_FFT(bool show, bool save, const std::string &save
         return img_complex;
     }
 
+
+    cv::Mat img_back = img_complex.clone();
+
+    for (int i = 0; i < img_back.rows; i++) {
+        cv::Mat row = img_back.row(i);
+
+        cv::Mat row_new = this->ifft(row, img_back.cols);
+
+        img_back.row(i) = row_new.clone() + 0;
+    }
+
+
+    // Fourier transform for every col in edited img
+    for (int i = 0; i < img_back.cols; i++) {
+        cv::Mat col = img_back.col(i);
+//        std::cout << col << std::endl;
+        cv::transpose(col, col);
+//        std::cout << col.at<cv::Point2f>(0, 0) << std::endl;
+        cv::Mat col_new = this->ifft(col, img_back.rows);
+        cv::transpose(col_new, col_new);
+        img_back.col(i) = col_new.clone() + 0;
+    }
+
 //    cv::Mat img_back(img_complex.rows, img_complex.cols, CV_32FC2);
 //    this->idft(img_complex, img_back);
 
@@ -158,14 +181,14 @@ cv::Mat FourierTransform::full_FFT(bool show, bool save, const std::string &save
 
     this->krasivSpektr(img_mag);
 
-    /*cv::Mat planes_out[2];
+    cv::Mat planes_out[2];
     split(img_back, planes_out);
 
     img_back = planes_out[0].clone();
     cv::normalize(img_back, img_back, 0, 255, cv::NORM_MINMAX);
-    img_back.convertTo(img_back, CV_8U);*/
+    img_back.convertTo(img_back, CV_8U);
 
-    std::vector<cv::Mat> images = {this->img, padded, img_mag};
+    std::vector<cv::Mat> images = {this->img, padded, img_mag, img_back};
     this->show_images(images);
     return img_complex;
 }
@@ -332,26 +355,36 @@ cv::Mat FourierTransform::get_W_inv(int N) {
 cv::Mat FourierTransform::fft(const cv::Mat &x_in, int N) {
     std::vector<std::complex<float>> x_out(N);
 
-
     for (int i = 0; i < N; i++) {
-
-
         x_out[i] = std::complex<float>(x_in.at<cv::Point2f>(0, i).x, x_in.at<cv::Point2f>(0, i).y);
         x_out[i] *= 1; // Window
     }
 
     // Start recursion
-    fft_rec(x_out, N);
+    this->fft_rec(x_out, N);
 
     cv::Mat x_out_(x_in.rows, x_in.cols, CV_32FC2);
     for (int i = 0; i < x_out_.cols; i++) {
-
-
         x_out_.at<cv::Point2f>(0, i) = cv::Point2f(x_out[i].real(), x_out[i].imag());
+    }
+    return x_out_;
+}
 
+cv::Mat FourierTransform::ifft(const cv::Mat &x_in, int N) {
+    std::vector<std::complex<float>> x_out(N);
+
+    for (int i = 0; i < N; i++) {
+        x_out[i] = std::complex<float>(x_in.at<cv::Point2f>(0, i).x, x_in.at<cv::Point2f>(0, i).y);
+        x_out[i] *= 1; // Window
     }
 
+    // Start recursion
+    this->ifft_rec(x_out, N);
 
+    cv::Mat x_out_(x_in.rows, x_in.cols, CV_32FC2);
+    for (int i = 0; i < x_out_.cols; i++) {
+        x_out_.at<cv::Point2f>(0, i) = cv::Point2f(x_out[i].real(), x_out[i].imag());
+    }
     return x_out_;
 }
 
@@ -373,14 +406,36 @@ void FourierTransform::fft_rec(std::vector<std::complex<float>> &x, int N) {
     fft_rec(even, N / 2);
     fft_rec(odd, N / 2);
 
-
     // Calculate DFT
     for (int k = 0; k < N / 2; k++) {
         std::complex<float> W = exp(std::complex<float>(0, -2 * CV_PI * k / N));
-
         x[k] = even[k] + W * odd[k];
         x[N / 2 + k] = even[k] - W * odd[k];
     }
 }
 
+void FourierTransform::ifft_rec(std::vector<std::complex<float>> &x, int N) {
+    // Check if it is splitted enough
+    if (N <= 1) {
+        return;
+    }
 
+    // Split even and odd
+    std::vector<std::complex<float>> odd(N / 2);
+    std::vector<std::complex<float>> even(N / 2);
+    for (int i = 0; i < N / 2; i++) {
+        even[i] = x[i * 2];
+        odd[i] = x[i * 2 + 1];
+    }
+
+    // Split on tasks
+    ifft_rec(even, N / 2);
+    ifft_rec(odd, N / 2);
+
+    // Calculate DFT
+    for (int k = 0; k < N / 2; k++) {
+        std::complex<float> W = exp(std::complex<float>(0, 2 * CV_PI * k / N));
+        x[k] = even[k] + W * odd[k];
+        x[N / 2 + k] = even[k] - W * odd[k];
+    }
+}
