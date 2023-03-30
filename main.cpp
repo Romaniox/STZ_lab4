@@ -14,7 +14,7 @@ int main() {
 
     FourierTransform test(img);
 
-    test.full_FFT(true, false, "../results/FFT_cpp_256_320.xml");
+    test.full_DFT_opencv(true, false, "../results/FFT_cpp_256_320.xml");
 
     return 0;
 }

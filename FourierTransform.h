@@ -10,10 +10,11 @@
 class FourierTransform {
 public:
     cv::Mat img;
-//private:
-//    cv::Mat padded_img;
-//    cv::Mat img_complex;
-//    cv::Mat img_back;
+private:
+    cv::Mat padded_img;
+    cv::Mat img_complex;
+    cv::Mat img_mag;
+    cv::Mat img_back;
 public:
     cv::Mat full_DFT(bool show = false, bool save = false, const std::string& save_path= "../results/result.xml");
     cv::Mat full_DFT_opencv(bool show = false, bool save = false, const std::string& save_path = "../results/result.xml");
@@ -38,6 +39,10 @@ private:
 private:
     cv::Mat get_W(int N);
     cv::Mat get_W_inv(int N);
+
+private:
+    void preproc(bool is_fft = false);
+    void postproc();
 
 
 public:

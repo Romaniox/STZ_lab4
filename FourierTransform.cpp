@@ -4,186 +4,151 @@ FourierTransform::FourierTransform(const cv::Mat &img) {
     this->img = img.clone();
 }
 
-cv::Mat FourierTransform::full_DFT(bool show, bool save, const std::string& save_path) {
+// create padded and empty complex imgs
+void FourierTransform::preproc(bool is_fft) {
     cv::cvtColor(this->img, this->img, cv::COLOR_BGR2GRAY);
 
     //expand input image to optimal size
     cv::Mat padded;
-    int m = cv::getOptimalDFTSize(this->img.rows);
-    int n = cv::getOptimalDFTSize(this->img.cols);
+
+    int m;
+    int n;
+    if (!is_fft) {
+        m = cv::getOptimalDFTSize(this->img.rows);
+        n = cv::getOptimalDFTSize(this->img.cols);
+    } else {
+        m = 512;
+        n = 256;
+    }
+
     copyMakeBorder(this->img, padded, 0, m - this->img.rows, 0, n - img.cols, cv::BORDER_CONSTANT, cv::Scalar::all(0));
 
-    cv::Mat padded_float = cv::Mat_<float>(padded);
-//    this->padded_img = padded.clone();
-    cv::Mat img_complex(padded_float.rows, padded_float.cols, CV_32FC2);
-    this->dft(padded_float, img_complex);
+    padded = cv::Mat_<float>(padded);
+    this->padded_img = padded.clone();
+    this->img_complex = cv::Mat(this->padded_img.rows, this->padded_img.cols, CV_32FC2);
+}
+
+void FourierTransform::postproc() {
+    //split Re and Im parts of Fourier img
+    cv::Mat planes[2];
+    cv::split(this->img_complex, planes);
+
+    // get visible Fourier result img
+    magnitude(planes[0], planes[1], this->img_mag);
+
+    this->img_mag += cv::Scalar::all(1);
+    cv::log(this->img_mag, this->img_mag);
+    cv::normalize(this->img_mag, this->img_mag, 0, 1, cv::NORM_MINMAX);
+
+    this->krasivSpektr(this->img_mag);
+
+    cv::Mat planes_out[2];
+    split(this->img_back, planes_out);
+
+    this->img_back = planes_out[0].clone();
+    cv::normalize(this->img_back, this->img_back, 0, 255, cv::NORM_MINMAX);
+
+    this->img_back.convertTo(this->img_back, CV_8U);
+
+    this->padded_img.convertTo(this->padded_img, CV_8U);
+}
+
+cv::Mat FourierTransform::full_DFT(bool show, bool save, const std::string &save_path) {
+    this->preproc();
+    this->dft(this->padded_img, this->img_complex);
 
     if (save) {
-        this->save(img_complex, save_path);
+        this->save(this->img_complex, save_path);
     }
 
     if (!show) {
-        return img_complex;
+        return this->img_complex;
     }
 
-    cv::Mat img_back(img_complex.rows, img_complex.cols, CV_32FC2);
-    this->idft(img_complex, img_back);
+    this->img_back = cv::Mat(this->img_complex.rows, this->img_complex.cols, CV_32FC2);
+    this->idft(this->img_complex, this->img_back);
 
-    //split Re and Im parts of Fourier img
-    cv::Mat planes[2];
-    cv::split(img_complex, planes);
+    this->postproc();
 
-    // get visible Fourier result img
-    cv::Mat img_mag;
-    magnitude(planes[0], planes[1], img_mag);
-
-    img_mag += cv::Scalar::all(1);
-    cv::log(img_mag, img_mag);
-    cv::normalize(img_mag, img_mag, 0, 1, cv::NORM_MINMAX);
-
-    this->krasivSpektr(img_mag);
-
-    cv::Mat planes_out[2];
-    split(img_back, planes_out);
-
-    img_back = planes_out[0].clone();
-    cv::normalize(img_back, img_back, 0, 255, cv::NORM_MINMAX);
-    img_back.convertTo(img_back, CV_8U);
-
-    std::vector<cv::Mat> images = {this->img, padded, img_mag, img_back};
+    std::vector<cv::Mat> images = {this->img, this->padded_img, this->img_mag, this->img_back};
     this->show_images(images);
-    return img_complex;
+    return this->img_complex;
 }
 
 cv::Mat FourierTransform::full_DFT_opencv(bool show, bool save, const std::string &save_path) {
-    cv::cvtColor(this->img, this->img, cv::COLOR_BGR2GRAY);
-
-    cv::Mat padded;                            //expand input image to optimal size
-    int m = cv::getOptimalDFTSize(img.rows);
-    int n = cv::getOptimalDFTSize(img.cols);
-    copyMakeBorder(img, padded, 0, m - img.rows, 0, n - img.cols, cv::BORDER_CONSTANT, cv::Scalar::all(0));
-
-
-    cv::Mat planes[] = {cv::Mat_<float>(padded), cv::Mat::zeros(padded.size(), CV_32F)};
-    cv::Mat img_complex;
-    cv::merge(planes, 2, img_complex);
-    cv::dft(img_complex, img_complex);
+    this->preproc();
+    cv::merge(std::vector<cv::Mat>{this->padded_img, cv::Mat::zeros(this->padded_img.size(), CV_32F)}, this->img_complex);
+    cv::dft(this->img_complex, this->img_complex);
 
     if (save) {
-        this->save(img_complex, save_path);
+        this->save(this->img_complex, save_path);
     }
 
     if (!show) {
-        return img_complex;
+        return this->img_complex;
     }
 
-    split(img_complex, planes);
+    this->img_back = cv::Mat(this->img_complex.rows, this->img_complex.cols, CV_32FC2);
+    cv::dft(this->img_complex, this->img_back, cv::DFT_INVERSE | cv::DFT_REAL_OUTPUT);
 
-    cv::Mat img_mag;
-    magnitude(planes[0], planes[1], img_mag);
+    this->postproc();
 
-    img_mag += cv::Scalar::all(1);
-    cv::log(img_mag, img_mag);
+    std::vector<cv::Mat> images = {this->img, this->padded_img, this->img_mag, this->img_back};
+    this->show_images(images);
 
-    cv::normalize(img_mag, img_mag, 0, 1, cv::NORM_MINMAX);
-
-    krasivSpektr(img_mag);
-
-    cv::Mat img_back;
-    cv::dft(img_complex, img_back, cv::DFT_INVERSE | cv::DFT_REAL_OUTPUT);
-    cv::normalize(img_back, img_back, 0, 255, cv::NORM_MINMAX);
-    img_back.convertTo(img_back, CV_8U);
-
-    std::vector<cv::Mat> images = {img, padded, img_mag, img_back};
-    show_images(images);
-
-    return img_complex;
+    return this->img_complex;
 }
 
 
 cv::Mat FourierTransform::full_FFT(bool show, bool save, const std::string &save_path) {
-    cv::cvtColor(this->img, this->img, cv::COLOR_BGR2GRAY);
+    this->preproc(true);
+    cv::merge(std::vector<cv::Mat>{this->padded_img, cv::Mat::zeros(this->padded_img.size(), CV_32F)}, img_complex);
 
-    //expand input image to optimal size
-    cv::Mat padded;
-    int m = cv::getOptimalDFTSize(this->img.rows);
-    int n = cv::getOptimalDFTSize(this->img.cols);
-    m = 512;
-    copyMakeBorder(this->img, padded, 0, m - this->img.rows, 0, n - img.cols, cv::BORDER_CONSTANT, cv::Scalar::all(0));
-
-    cv::Mat padded_float = cv::Mat_<float>(padded);
-    cv::Mat img_complex(padded_float.rows, padded_float.cols, CV_32FC2);
-    cv::merge(std::vector<cv::Mat>{padded_float, cv::Mat::zeros(padded_float.size(), CV_32F)}, img_complex);
-
-    for (int i = 0; i < img_complex.rows; i++) {
-        cv::Mat row = img_complex.row(i);
-
-        cv::Mat row_new = this->fft(row, img_complex.cols);
-
-        img_complex.row(i) = row_new.clone() + 0;
+    for (int i = 0; i < this->img_complex.rows; i++) {
+        cv::Mat row = this->img_complex.row(i);
+        cv::Mat row_new = this->fft(row, this->img_complex.cols);
+        this->img_complex.row(i) = row_new.clone() + 0;
     }
 
     // Fourier transform for every col in edited img
-    for (int i = 0; i < img_complex.cols; i++) {
-        cv::Mat col = img_complex.col(i);
+    for (int i = 0; i < this->img_complex.cols; i++) {
+        cv::Mat col = this->img_complex.col(i);
         cv::transpose(col, col);
-        cv::Mat col_new = this->fft(col, img_complex.rows);
+        cv::Mat col_new = this->fft(col, this->img_complex.rows);
         cv::transpose(col_new, col_new);
-        img_complex.col(i) = col_new.clone() + 0;
+        this->img_complex.col(i) = col_new.clone() + 0;
     }
 
     if (save) {
-        this->save(img_complex, save_path);
+        this->save(this->img_complex, save_path);
     }
 
     if (!show) {
-        return img_complex;
+        return this->img_complex;
     }
 
-    cv::Mat img_back = img_complex.clone();
-    for (int i = 0; i < img_back.rows; i++) {
-        cv::Mat row = img_back.row(i);
-
-        cv::Mat row_new = this->ifft(row, img_back.cols);
-
-        img_back.row(i) = row_new.clone() + 0;
+    this->img_back = cv::Mat(this->img_complex.rows, this->img_complex.cols, CV_32FC2);
+    for (int i = 0; i < this->img_back.rows; i++) {
+        cv::Mat row = this->img_complex.row(i);
+        cv::Mat row_new = this->ifft(row, this->img_complex.cols);
+        this->img_back.row(i) = row_new.clone() + 0;
     }
 
-    // Fourier transform for every col in edited img
-    for (int i = 0; i < img_back.cols; i++) {
-        cv::Mat col = img_back.col(i);
-//        std::cout << col << std::endl;
+    for (int i = 0; i < this->img_back.cols; i++) {
+        cv::Mat col = this->img_back.col(i);
         cv::transpose(col, col);
-//        std::cout << col.at<cv::Point2f>(0, 0) << std::endl;
-        cv::Mat col_new = this->ifft(col, img_back.rows);
+        cv::Mat col_new = this->ifft(col, this->img_back.rows);
         cv::transpose(col_new, col_new);
-        img_back.col(i) = col_new.clone() + 0;
+        this->img_back.col(i) = col_new.clone() + 0;
     }
 
-    //split Re and Im parts of Fourier img
-    cv::Mat planes[2];
-    cv::split(img_complex, planes);
+//    std::cout << this->img_back << std::endl;
 
-    // get visible Fourier result img
-    cv::Mat img_mag;
-    magnitude(planes[0], planes[1], img_mag);
+    this->postproc();
 
-    img_mag += cv::Scalar::all(1);
-    cv::log(img_mag, img_mag);
-    cv::normalize(img_mag, img_mag, 0, 1, cv::NORM_MINMAX);
-
-    this->krasivSpektr(img_mag);
-
-    cv::Mat planes_out[2];
-    split(img_back, planes_out);
-
-    img_back = planes_out[0].clone();
-    cv::normalize(img_back, img_back, 0, 255, cv::NORM_MINMAX);
-    img_back.convertTo(img_back, CV_8U);
-
-    std::vector<cv::Mat> images = {this->img, padded, img_mag, img_back};
+    std::vector<cv::Mat> images = {this->img, this->padded_img, this->img_mag, this->img_back};
     this->show_images(images);
-    return img_complex;
+    return this->img_complex;
 }
 
 
@@ -193,7 +158,6 @@ void FourierTransform::dft(const cv::Mat &img_dft, cv::Mat &img_dft2, bool show,
     W = get_W(img_dft.cols);
     for (int i = 0; i < img_dft.rows; i++) {
         cv::Mat row = img_dft.row(i);
-
         cv::Mat row_new = DFT_lobovoy(row, W);
         cv::transpose(row_new, row_new);
         img_dft2.row(i) = row_new.clone() + 0;
