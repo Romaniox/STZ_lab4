@@ -27,6 +27,14 @@ private:
 //    cv::Mat img_mag;
 
 public:
+    int h;
+    int w;
+    int c;
+public:
+    int h1 = 0;
+    int w1 = 0;
+
+public:
     cv::Mat full_DFT(bool show = false, bool save = false, const std::string &save_path = "../results/result.xml");
 
     cv::Mat
@@ -69,7 +77,7 @@ public:
 
 
 public:
-//    explicit FourierTransform(const cv::Mat &img);
+//    explicit FourierTransform();
 
     ~FourierTransform() = default;
 
@@ -80,4 +88,6 @@ public:
     void back_DFT(DFT_type type);
 
     void full(DFT_type type, bool show = false, bool save = false, const std::string &save_path = "../results/result.xml");
+
+    void get_hwc();
 };

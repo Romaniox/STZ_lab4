@@ -39,14 +39,17 @@ void show_images(const std::vector<cv::Mat> &images) {
     cv::waitKey(-1);
 }
 
-//FourierTransform::FourierTransform(const cv::Mat &img) {
-//    this->img = img.clone();
-//}
+void FourierTransform::get_hwc() {
+    this->h = this->img.rows;
+    this->w = this->img.cols;
+    this->c = this->img.channels();
+}
 
 // create padded and empty complex imgs
 void FourierTransform::preproc(bool is_fft) {
+    get_hwc();
 //    std::cout << this->img.type() << std::endl;
-    if (this->img.channels() != 1) {
+    if (this->c != 1) {
         cv::cvtColor(this->img, this->img, cv::COLOR_BGR2GRAY);
     }
 
@@ -54,21 +57,20 @@ void FourierTransform::preproc(bool is_fft) {
 //    std::cout << this->img << std::endl;
     //expand input image to optimal size
     cv::Mat padded;
-
-    int m;
-    int n;
-    if (!is_fft) {
-        m = cv::getOptimalDFTSize(this->img.rows);
-        n = cv::getOptimalDFTSize(this->img.cols);
-    } else {
-        m = 512;
-        n = 256;
+    if (this->h1 == 0 || this->w1 == 0) {
+        if (!is_fft) {
+            this->h1 = cv::getOptimalDFTSize(this->h);
+            this->w1 = cv::getOptimalDFTSize(this->w);
+        } else {
+            this->h1 = 512;
+            this->w1 = 256;
+        }
     }
+//    m = 320;
+//    n = 256;
 
-    m = 320;
-    n = 256;
-
-    copyMakeBorder(this->img, padded, 0, m - this->img.rows, 0, n - img.cols, cv::BORDER_CONSTANT, cv::Scalar::all(0));
+    copyMakeBorder(this->img, padded, 0, this->h1 - this->h, 0, this->w1 - this->w, cv::BORDER_CONSTANT,
+                   cv::Scalar::all(0));
 
     padded = cv::Mat_<float>(padded);
     this->padded_img = padded.clone();
@@ -99,7 +101,7 @@ void FourierTransform::postproc() {
 
     this->img_back.convertTo(this->img_back, CV_8U);
 
-    this->img_back = this->img_back(cv::Rect(0, 0, 252, 307));
+    this->img_back = this->img_back(cv::Rect(0, 0, this->w, this->h));
 
     this->padded_img.convertTo(this->padded_img, CV_8U);
 }
