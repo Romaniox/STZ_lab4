@@ -13,6 +13,7 @@ enum DFT_type {
 };
 
 void show_images(const std::vector<cv::Mat> &images);
+void krasivSpektr(cv::Mat &imag);
 
 class FourierTransform {
 public:

@@ -13,6 +13,25 @@
 //
 //}
 
+void krasivSpektr(cv::Mat &imag) {
+    int cx = imag.cols / 2;
+    int cy = imag.rows / 2;
+
+    cv::Mat q0(imag, cv::Rect(0, 0, cx, cy)); // Top-Left - Create a ROI per quadrant
+    cv::Mat q1(imag, cv::Rect(cx, 0, cx, cy)); // Top-Right
+    cv::Mat q2(imag, cv::Rect(0, cy, cx, cy)); // Bottom-Left
+    cv::Mat q3(imag, cv::Rect(cx, cy, cx, cy)); // Bottom-Right
+
+    cv::Mat tmp; // swap quadrants (Top-Left with Bottom-Right)
+    q0.copyTo(tmp);
+    q3.copyTo(q0);
+    tmp.copyTo(q3);
+
+    q1.copyTo(tmp); // swap quadrant (Top-Right with Bottom-Left)
+    q2.copyTo(q1);
+    tmp.copyTo(q2);
+}
+
 void show_images(const std::vector<cv::Mat> &images) {
     for (int i = 0; i < images.size(); i++) {
         cv::imshow(std::to_string(i), images[i]);
@@ -26,8 +45,8 @@ void show_images(const std::vector<cv::Mat> &images) {
 
 // create padded and empty complex imgs
 void FourierTransform::preproc(bool is_fft) {
-    std::cout << this->img.type() << std::endl;
-    if (this->img.type() != CV_32SC1) {
+//    std::cout << this->img.type() << std::endl;
+    if (this->img.channels() != 1) {
         cv::cvtColor(this->img, this->img, cv::COLOR_BGR2GRAY);
     }
 
@@ -76,7 +95,11 @@ void FourierTransform::postproc() {
     this->img_back = planes_out[0].clone();
     cv::normalize(this->img_back, this->img_back, 0, 255, cv::NORM_MINMAX);
 
+//    this->img_mag.convertTo(this->img_mag, CV_8UC1);
+
     this->img_back.convertTo(this->img_back, CV_8U);
+
+    this->img_back = this->img_back(cv::Rect(0, 0, 252, 307));
 
     this->padded_img.convertTo(this->padded_img, CV_8U);
 }
