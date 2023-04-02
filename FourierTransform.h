@@ -6,10 +6,17 @@
 #include "opencv2/imgcodecs.hpp"
 #include <opencv2/videoio.hpp>
 
-enum DFT_type {
+enum DFTType {
     DFT,
     DFT_OpenCV,
     FFT
+};
+
+enum FilterType {
+    XSobel,
+    YSobel,
+    Laplas,
+    Box
 };
 
 void show_images(const std::vector<cv::Mat> &images);
@@ -22,6 +29,8 @@ public:
     cv::Mat img_back;
     cv::Mat padded_img;
     cv::Mat img_mag;
+public:
+    DFTType DFT_type  = DFT_OpenCV;
 private:
 //    cv::Mat padded_img;
 //    cv::Mat img_mag;
@@ -57,9 +66,6 @@ public:
 
 public:
     cv::Mat DFT_lobovoy(const cv::Mat &x0, const cv::Mat &W);
-
-    void krasivSpektr(cv::Mat &imag);
-
 private:
     void save(cv::Mat &imag, std::string save_path);
 
@@ -71,23 +77,23 @@ private:
     cv::Mat get_W_inv(int N);
 
 public:
-    void preproc(bool is_fft = false);
+    void preproc();
 
     void postproc();
 
 
 public:
-//    explicit FourierTransform();
+    explicit FourierTransform(DFTType DFT_type  = DFT_OpenCV);
 
     ~FourierTransform() = default;
 
     cv::Mat only_back_DFT(bool show = false, bool save = false, const std::string &save_path = "../results/result.xml");
 
-    void dir_DFT(DFT_type type);
+    void dir_DFT();
 
-    void back_DFT(DFT_type type);
+    void back_DFT();
 
-    void full(DFT_type type, bool show = false, bool save = false, const std::string &save_path = "../results/result.xml");
+    void full(bool show = false, bool save = false, const std::string &save_path = "../results/result.xml");
 
     void get_hwc();
 };

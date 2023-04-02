@@ -1,17 +1,10 @@
 #include "FourierTransform.h"
 #include <chrono>
 
-//void back_conv(const cv::Mat& img_complex) {
-//    cv::Mat img_back = cv::Mat(img_complex.rows, img_complex.cols, CV_32FC2);
-//    this->idft(this->img_complex, this->img_back);
-//
-//    this->postproc();
-//
-//    std::vector<cv::Mat> images = {this->img_mag};
-//    this->show_images(images);
-//    return this->img_complex;
-//
-//}
+FourierTransform::FourierTransform(DFTType DFT_type) {
+    this->DFT_type = DFT_type;
+}
+
 
 void krasivSpektr(cv::Mat &imag) {
     int cx = imag.cols / 2;
@@ -46,19 +39,16 @@ void FourierTransform::get_hwc() {
 }
 
 // create padded and empty complex imgs
-void FourierTransform::preproc(bool is_fft) {
+void FourierTransform::preproc() {
     get_hwc();
-//    std::cout << this->img.type() << std::endl;
     if (this->c != 1) {
         cv::cvtColor(this->img, this->img, cv::COLOR_BGR2GRAY);
     }
 
-
-//    std::cout << this->img << std::endl;
     //expand input image to optimal size
     cv::Mat padded;
     if (this->h1 == 0 || this->w1 == 0) {
-        if (!is_fft) {
+        if (this->DFT_type != FFT) {
             this->h1 = cv::getOptimalDFTSize(this->h);
             this->w1 = cv::getOptimalDFTSize(this->w);
         } else {
@@ -66,8 +56,6 @@ void FourierTransform::preproc(bool is_fft) {
             this->w1 = 256;
         }
     }
-//    m = 320;
-//    n = 256;
 
     copyMakeBorder(this->img, padded, 0, this->h1 - this->h, 0, this->w1 - this->w, cv::BORDER_CONSTANT,
                    cv::Scalar::all(0));
@@ -89,7 +77,7 @@ void FourierTransform::postproc() {
     cv::log(this->img_mag, this->img_mag);
     cv::normalize(this->img_mag, this->img_mag, 0, 1, cv::NORM_MINMAX);
 
-    this->krasivSpektr(this->img_mag);
+    krasivSpektr(this->img_mag);
 
     cv::Mat planes_out[2];
     split(this->img_back, planes_out);
@@ -97,23 +85,21 @@ void FourierTransform::postproc() {
     this->img_back = planes_out[0].clone();
     cv::normalize(this->img_back, this->img_back, 0, 255, cv::NORM_MINMAX);
 
-//    this->img_mag.convertTo(this->img_mag, CV_8UC1);
-
     this->img_back.convertTo(this->img_back, CV_8U);
-
     this->img_back = this->img_back(cv::Rect(0, 0, this->w, this->h));
 
     this->padded_img.convertTo(this->padded_img, CV_8U);
 }
 
-void FourierTransform::dir_DFT(DFT_type type) {
-//    this->preproc(true);
+void FourierTransform::dir_DFT() {
+    cv::merge(std::vector<cv::Mat>{this->padded_img, cv::Mat::zeros(this->padded_img.size(), CV_32F)},
+              this->img_complex);
 
-    switch (type) {
-
+    switch (this->DFT_type) {
         case DFT:
             this->dft(this->padded_img, this->img_complex);
             break;
+
         case DFT_OpenCV:
             cv::merge(std::vector<cv::Mat>{this->padded_img, cv::Mat::zeros(this->padded_img.size(), CV_32F)},
                       this->img_complex);
@@ -138,16 +124,16 @@ void FourierTransform::dir_DFT(DFT_type type) {
     }
 }
 
-void FourierTransform::back_DFT(DFT_type type) {
+void FourierTransform::back_DFT() {
     this->img_back = cv::Mat(this->img_complex.rows, this->img_complex.cols, CV_32FC2);
 
-    switch (type) {
-
+    switch (this->DFT_type) {
         case DFT:
             this->idft(this->img_complex, this->img_back);
+            break;
         case DFT_OpenCV:
             cv::dft(this->img_complex, this->img_back, cv::DFT_INVERSE | cv::DFT_REAL_OUTPUT);
-
+            break;
         case FFT:
             for (int i = 0; i < this->img_back.rows; i++) {
                 cv::Mat row = this->img_complex.row(i);
@@ -162,24 +148,19 @@ void FourierTransform::back_DFT(DFT_type type) {
                 cv::transpose(col_new, col_new);
                 this->img_back.col(i) = col_new.clone() + 0;
             }
+            break;
     }
 }
 
-void FourierTransform::full(DFT_type type, bool show, bool save, const std::string &save_path) {
-    this->preproc(false);
-
-    this->dir_DFT(type);
-    this->back_DFT(type);
+void FourierTransform::full(bool show, bool save, const std::string &save_path) {
+    this->preproc();
+    this->dir_DFT();
+    this->back_DFT();
+    this->postproc();
 
     if (save) {
         this->save(this->img_complex, save_path);
     }
-
-//    if (!show) {
-//        return this->img_complex;
-//    }
-
-    this->postproc();
 
     if (show) {
         std::vector<cv::Mat> images = {this->img_mag};
@@ -187,7 +168,7 @@ void FourierTransform::full(DFT_type type, bool show, bool save, const std::stri
     }
 }
 
-cv::Mat FourierTransform::full_DFT(bool show, bool save, const std::string &save_path) {
+/*cv::Mat FourierTransform::full_DFT(bool show, bool save, const std::string &save_path) {
     this->preproc(true);
 
     auto start = std::chrono::high_resolution_clock::now();
@@ -214,9 +195,9 @@ cv::Mat FourierTransform::full_DFT(bool show, bool save, const std::string &save
     std::vector<cv::Mat> images = {this->img_mag};
     this->show_images(images);
     return this->img_complex;
-}
+}*/
 
-cv::Mat FourierTransform::full_DFT_opencv(bool show, bool save, const std::string &save_path) {
+/*cv::Mat FourierTransform::full_DFT_opencv(bool show, bool save, const std::string &save_path) {
     this->preproc();
     cv::merge(std::vector<cv::Mat>{this->padded_img, cv::Mat::zeros(this->padded_img.size(), CV_32F)},
               this->img_complex);
@@ -245,10 +226,10 @@ cv::Mat FourierTransform::full_DFT_opencv(bool show, bool save, const std::strin
     this->show_images(images);
 
     return this->img_complex;
-}
+}*/
 
 
-cv::Mat FourierTransform::full_FFT(bool show, bool save, const std::string &save_path) {
+/*cv::Mat FourierTransform::full_FFT(bool show, bool save, const std::string &save_path) {
     this->preproc(true);
     cv::merge(std::vector<cv::Mat>{this->padded_img, cv::Mat::zeros(this->padded_img.size(), CV_32F)}, img_complex);
 
@@ -304,9 +285,9 @@ cv::Mat FourierTransform::full_FFT(bool show, bool save, const std::string &save
     std::vector<cv::Mat> images = {this->img, this->padded_img, this->img_mag, this->img_back};
     this->show_images(images);
     return this->img_complex;
-}
+}*/
 
-cv::Mat FourierTransform::only_back_DFT(bool show, bool save, const std::string &save_path) {
+/*cv::Mat FourierTransform::only_back_DFT(bool show, bool save, const std::string &save_path) {
     this->img_back = cv::Mat(this->img_complex.rows, this->img_complex.cols, CV_32FC2);
     cv::dft(this->img_complex, this->img_back, cv::DFT_INVERSE | cv::DFT_REAL_OUTPUT);
 
@@ -318,7 +299,7 @@ cv::Mat FourierTransform::only_back_DFT(bool show, bool save, const std::string 
     }
 
     return this->img_complex;
-}
+}*/
 
 
 void FourierTransform::dft(const cv::Mat &img_dft, cv::Mat &img_dft2, bool show, bool inverse) {
@@ -380,7 +361,7 @@ cv::Mat FourierTransform::DFT_lobovoy(const cv::Mat &x0, const cv::Mat &W) {
     return X;
 }
 
-void FourierTransform::krasivSpektr(cv::Mat &imag) {
+/*void FourierTransform::krasivSpektr(cv::Mat &imag) {
     int cx = imag.cols / 2;
     int cy = imag.rows / 2;
 
@@ -397,7 +378,7 @@ void FourierTransform::krasivSpektr(cv::Mat &imag) {
     q1.copyTo(tmp); // swap quadrant (Top-Right with Bottom-Left)
     q2.copyTo(q1);
     tmp.copyTo(q2);
-}
+}*/
 
 void FourierTransform::save(cv::Mat &imag, std::string save_path) {
     cv::FileStorage file(save_path, cv::FileStorage::WRITE);
@@ -536,5 +517,7 @@ void FourierTransform::fft_rec(std::vector<std::complex<float>> &x, int N, bool 
 void FourierTransform::ifft_rec(std::vector<std::complex<float>> &x, int N) {
     fft_rec(x, N, true);
 }
+
+
 
 
