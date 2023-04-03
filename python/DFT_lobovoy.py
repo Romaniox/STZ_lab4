@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 from pathlib import Path
 from utils import show_images
+import time
 
 from DFT import get_W, dft
 
@@ -20,6 +21,7 @@ padded = cv2.copyMakeBorder(img, 0, m - rows, 0, n - cols, cv2.BORDER_CONSTANT, 
 
 img_complex = padded.astype(np.complex64)
 
+start = time.time_ns()
 W = get_W(img_complex.shape[1], inv=False)
 for i, row in enumerate(img_complex):
     row_complex = dft(row, W)
@@ -29,6 +31,9 @@ W = get_W(img_complex.shape[0], inv=False)
 for i, col in enumerate(img_complex.T):
     col_complex = dft(col, W)
     img_complex.T[i] = col_complex
+
+end = time.time_ns()
+print(end - start)
 
 planes = (img_complex.real, img_complex.imag)  # planes[0] = Re(DFT(I), planes[1] = Im(DFT(I))
 img_mag = cv2.magnitude(planes[0], planes[1])

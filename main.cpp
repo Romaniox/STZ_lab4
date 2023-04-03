@@ -1,26 +1,22 @@
-#include <iostream>
-#include "custom_DFT.h"
-#include "FourierTransform.h"
-
-
 #include "opencv2/core.hpp"
 #include "opencv2/highgui.hpp"
-#include <opencv2/imgproc.hpp>
 
-#define PART9
+#include "FourierTransform.h"
 
-DFTType DFT_TYPE = FFT;
+#define PART1
+
+DFTType DFT_TYPE = DFT;
 
 int main() {
     cv::Mat img = cv::imread("./images/fourier.png");
 
 #ifdef PART1
     FourierTransform init_img_f(DFT_TYPE);
-    init_img_f.img = img;
+    init_img_f.img0 = img;
 
     init_img_f.full();
 
-    std::vector<cv::Mat> images = {init_img_f.img, init_img_f.padded_img, init_img_f.img_mag, init_img_f.img_back};
+    std::vector<cv::Mat> images = {init_img_f.img0, init_img_f.img_padded, init_img_f.img_mag, init_img_f.img_back};
     show_images(images);
 #endif
 
@@ -44,12 +40,12 @@ int main() {
     }
 
     FourierTransform init_img_f(DFT_TYPE);
-    init_img_f.img = img;
+    init_img_f.img0 = img;
 
     init_img_f.full();
 
     FourierTransform kernel_f(DFT_TYPE);
-    kernel_f.img = kernel;
+    kernel_f.img0 = kernel;
     kernel_f.h1 = init_img_f.h1;
     kernel_f.w1 = init_img_f.w1;
 
@@ -64,13 +60,13 @@ int main() {
     res_f.back_DFT();
     res_f.postproc();
 
-    std::vector<cv::Mat> images = {init_img_f.padded_img, init_img_f.img_mag, kernel_f.img_mag, res_f.img_mag, res_f.img_back};
+    std::vector<cv::Mat> images = {init_img_f.img_padded, init_img_f.img_mag, kernel_f.img_mag, res_f.img_mag, res_f.img_back};
     show_images(images);
 #endif
 
 #ifdef PART8
     FourierTransform init_img_f(DFT_TYPE);
-    init_img_f.img = img;
+    init_img_f.img0 = img;
 
     init_img_f.full();
 
@@ -110,8 +106,8 @@ int main() {
     FourierTransform nomer_f(DFT_TYPE);
     FourierTransform tpl_f(DFT_TYPE);
 
-    nomer_f.img = nomer;
-    tpl_f.img = tpl;
+    nomer_f.img0 = nomer;
+    tpl_f.img0 = tpl;
 
     nomer_f.full(DFT);
 

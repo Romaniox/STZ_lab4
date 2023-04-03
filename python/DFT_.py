@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 from pathlib import Path
 from utils import show_images
-
+import time
 
 ROOT = Path(os.getcwd())
 img_path = ROOT.parent / 'cmake-build-debug' / 'images' / 'fourier.png'
@@ -17,7 +17,10 @@ n = cv2.getOptimalDFTSize(cols)
 
 padded = cv2.copyMakeBorder(img, 0, m - rows, 0, n - cols, cv2.BORDER_CONSTANT, value=[0, 0, 0])
 
+start = time.time_ns()
 img_complex = cv2.dft(padded.astype(np.float32), flags=cv2.DFT_COMPLEX_OUTPUT)
+end = time.time_ns()
+print(end - start)
 
 planes = cv2.split(img_complex)  # planes[0] = Re(DFT(I), planes[1] = Im(DFT(I))
 img_mag = cv2.magnitude(planes[0], planes[1])
