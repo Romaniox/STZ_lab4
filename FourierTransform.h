@@ -40,6 +40,7 @@ public:
 public:
     void preproc();
     void postproc();
+    bool normalize = true;
 private:
     void dft(const cv::Mat &img_dft, cv::Mat &img_dft2, bool show = false, bool inverse = false);
     void idft(const cv::Mat &img_idft, cv::Mat &img_idft2, bool show = false);

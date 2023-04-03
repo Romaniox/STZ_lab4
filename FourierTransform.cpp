@@ -101,7 +101,6 @@ void FourierTransform::dir_DFT() {
 //    auto end = std::chrono::high_resolution_clock::now();
 //    auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
 
-
     switch (this->DFT_type) {
         case DFT:
             this->dft(this->img_padded, this->img_complex);
@@ -113,7 +112,6 @@ void FourierTransform::dir_DFT() {
 
         case FFT:
             this->fft(this->img_complex);
-
             break;
     }
 }
@@ -126,12 +124,13 @@ void FourierTransform::back_DFT() {
         case DFT:
             this->idft(this->img_complex, this->img_back);
             break;
+
         case DFT_OpenCV:
             cv::dft(this->img_complex, this->img_back, cv::DFT_INVERSE | cv::DFT_REAL_OUTPUT);
             break;
+
         case FFT:
             this->ifft(this->img_complex, this->img_back);
-
             break;
     }
 }
@@ -156,7 +155,7 @@ void FourierTransform::full(bool show, bool save, const std::string &save_path) 
 void FourierTransform::dft(const cv::Mat &img_dft, cv::Mat &img_dft2, bool show, bool inverse) {
     // Fourier transform for every row in init img
     cv::Mat W;
-    W = get_W(img_dft.cols);
+    W = this->get_W(img_dft.cols);
     for (int i = 0; i < img_dft.rows; i++) {
         cv::Mat row = img_dft.row(i);
         cv::Mat row_new = DFT_lobovoy(row, W);
@@ -165,7 +164,7 @@ void FourierTransform::dft(const cv::Mat &img_dft, cv::Mat &img_dft2, bool show,
     }
 
     // Fourier transform for every col in edited img
-    W = get_W(img_dft.rows);
+    W = this->get_W(img_dft.rows);
     for (int i = 0; i < img_dft2.cols; i++) {
         cv::Mat col = img_dft2.col(i);
         cv::Mat col_new = DFT_lobovoy(col, W);
@@ -175,7 +174,7 @@ void FourierTransform::dft(const cv::Mat &img_dft, cv::Mat &img_dft2, bool show,
 
 void FourierTransform::idft(const cv::Mat &img_idft, cv::Mat &img_idft2, bool show) {
     cv::Mat W;
-    W = get_W_inv(img_idft.cols);
+    W = this->get_W_inv(img_idft.cols);
     for (int i = 0; i < img_idft.rows; i++) {
         cv::Mat row = img_idft.row(i);
 
@@ -185,7 +184,7 @@ void FourierTransform::idft(const cv::Mat &img_idft, cv::Mat &img_idft2, bool sh
     }
 
     // Fourier transform for every col in edited img
-    W = get_W_inv(img_idft.rows);
+    W = this->get_W_inv(img_idft.rows);
     for (int i = 0; i < img_idft2.cols; i++) {
         cv::Mat col = img_idft2.col(i);
         cv::Mat col_new = DFT_lobovoy(col, W);

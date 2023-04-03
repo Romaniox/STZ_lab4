@@ -3,7 +3,7 @@
 
 #include "FourierTransform.h"
 
-#define PART1
+#define PART9
 
 DFTType DFT_TYPE = DFT;
 
@@ -80,24 +80,27 @@ int main() {
     cv::circle(mask_hpf, cv::Point(mask_hpf.cols / 2, mask_hpf.rows / 2), 20, cv::Scalar(0), -1);
     krasivSpektr(mask_hpf);
 
+    cv::Mat mask = mask_hpf;
+
     FourierTransform res_f(DFT_TYPE);
     res_f.w = init_img_f.w;
     res_f.h = init_img_f.h;
     res_f.w1 = init_img_f.w1;
     res_f.h1 = init_img_f.h1;
 
-    cv::bitwise_and(init_img_f.img_complex, init_img_f.img_complex, res_f.img_complex, mask_lpf);
+    cv::bitwise_and(init_img_f.img_complex, init_img_f.img_complex, res_f.img_complex, mask);
 
     res_f.back_DFT();
     res_f.postproc();
 
-    std::vector<cv::Mat> images = {res_f.img_mag, res_f.img_back};
+    krasivSpektr(mask);
+    std::vector<cv::Mat> images = {init_img_f.img0, init_img_f.img_mag, mask, res_f.img_mag, res_f.img_back};
     show_images(images);
 #endif
 
 #ifdef PART9
     cv::Mat nomer = cv::imread("./images/nomer.png", cv::IMREAD_GRAYSCALE);
-    cv::Mat tpl = cv::imread("./images/nomer0.png", cv::IMREAD_GRAYSCALE);
+    cv::Mat tpl = cv::imread("./images/nomer2.png", cv::IMREAD_GRAYSCALE);
 
     // inverse
     nomer = 255 - nomer;
